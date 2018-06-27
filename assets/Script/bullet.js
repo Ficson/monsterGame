@@ -19,6 +19,13 @@ cc.Class({
     onLoad: function () {
 
     },
+     onBeginContact: function (contact, selfCollider, otherCollider) {
+        cc.log("撞上了啊啊啊啊啊啊");
+        var selfNode = selfCollider.node;
+        selfNode.parent.getComponent("scene1Control").onBulletKilled();
+        selfNode.destroy();
+
+    }, 
     // called every frame, uncomment this function to activate update callback
     update: function (dt) {
         /* this.node.y = dt * this.speed;
@@ -26,5 +33,6 @@ cc.Class({
             this.bulletGroup.destroyBullet(this.node);
         } */
     },
+
 
 });

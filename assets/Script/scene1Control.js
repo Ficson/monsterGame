@@ -1,12 +1,4 @@
-// Learn cc.Class:
-//  - [Chinese] http://docs.cocos.com/creator/manual/zh/scripting/class.html
-//  - [English] http://www.cocos2d-x.org/docs/creator/en/scripting/class.html
-// Learn Attribute:
-//  - [Chinese] http://docs.cocos.com/creator/manual/zh/scripting/reference/attributes.html
-//  - [English] http://www.cocos2d-x.org/docs/creator/en/scripting/reference/attributes.html
-// Learn life-cycle callbacks:
-//  - [Chinese] http://docs.cocos.com/creator/manual/zh/scripting/life-cycle-callbacks.html
-//  - [English] http://www.cocos2d-x.org/docs/creator/en/scripting/life-cycle-callbacks.html
+
 
 cc.Class({
     extends: cc.Component,
@@ -16,8 +8,9 @@ cc.Class({
         playerPostion: cc.v2(0, 0),
         //鼠标位置
         mousePosition: cc.v2(0, 0),
-        //对象池
-   
+        //子弹数目
+        bulletCount:cc.Integer,
+
         //分数
         bulletPrefab: {
             type: cc.Prefab,
@@ -46,71 +39,56 @@ cc.Class({
 
      onLoad () {
          //鼠标事件
-         this.node.on(cc.Node.EventType.MOUSE_DOWN,this.onHandleMouseClick, this); // 开启物理系统
+         this.node.on(cc.Node.EventType.MOUSE_DOWN,this.onHandleMouseClick, this); 
+         
+         // 开启物理系统
          var physics = cc.director.getPhysicsManager();
          physics.enabled = true;
          physics.debugDrawFlags = cc.PhysicsManager.DrawBits.e_aabbBit;
+         physics.gravity = cc.v2(0,0);
 
+         //开启碰撞检测
+        /* var mngr = cc.director.getCollisionManager();
+         mngr.enabled = true;
+         mngr.enabledDebugDraw = true; */
 
-         //初始化对象池---场景初始化加载中，创建需要数量的节点，放到对象池中
-         /* this.bulletPool = new cc.NodePool();
-         let initCount = 5;
-         for (let i = 0; i < initCount; ++i) {
-             let bullet = cc.instantiate(this.bulletPrefab); // 创建节点
-             this.bulletPool.put(bullet); // 通过 putInPool 接口放入对象池
-             cc.log("创建对象池对象");
-            // cc.log('对象池大小'+ this.bulletPool.size);
-         } */
+         //初始化
+         this.bulletCount = 3;
+
          
      },
 
      //获取位置
      onHandleMouseClick: function (event) {
-         cc.log("鼠标点击");
-        // touchmove事件中 event.getLocation() 获取当前已左下角为锚点的触点位置（world point）
         this.mousePosition = event.getLocation();
-        // 实际hero是background的子元素，所以坐标应该是随自己的父元素进行的，所以我们要将“world point”转化为“node point”
+        this.mousePosition = this.player.parent.convertToNodeSpaceAR(this.mousePosition)
         this.playerPosition = this.player.getPosition();
-        this.createBullet();
-        cc.log("玩家所在位置" +  this.playerPosition.x,  this.playerPosition.y);
+        cc.log("玩家当前位置：", this.playerPosition.x, this.playerPosition.y);
         cc.log("鼠标当前位置：", this.mousePosition.x, this.mousePosition.y);
+        this.createBullet();
         
     },  
 
     //产生子弹
       createBullet: function () {
-         /*
-            let bullet = null;
-            //c1、当前对象池中的可用对象数量
-            if (this.bulletPool.size > 0) {
-                //_1、从对象池中获取对象
-                bullet= this.bulletPool.get();  
-                bullet.setPosition(this.playerPosition);  
-                cc.log("我是子弹哦" + bullet);
-            } else {
-                //_2、若没有空闲的对象，也就是对象不够用时，就克隆节点
-                bullet = cc.instantiate(this.bulletPrefab);
-            }
-            //c2、将生成的节点挂载到节点树上
-           bullet.parent = this.node; //(或者node.addChild(新节点))
-           bullet.getComponent("bullet").scene1Control = this;
-           cc.log("产生一颗子弹")
-            //c3、调用enemy的脚本进行初始化
-            // bullet.getComponent('bullet').init();
-            */
+          if (this.bulletCount > 0){
+            this.bulletCount--;
             cc.log("产生一颗子弹")
-
             var bullet = cc.instantiate(this.bulletPrefab);
             bullet.setPosition(this.playerPosition); 
             this.node.addChild(bullet);
-            bullet.getComponent(cc.RigidBody).linearVelocity = this.mousePosition;
+            var linearV = cc.pMult(cc.pNormalize(cc.pSub(this.mousePosition, this.playerPosition)),300);
+            bullet.getComponent(cc.RigidBody).linearVelocity = linearV;
             bullet.getComponent("bullet").scene1Control = this;
+          }else {
+              cc.log("不够子弹");
+          }
             
         },
 
         //销毁子弹
-        onBulletKilled: function (bullet) {
-            this.bulletPool.put(bullet);
+        onBulletKilled: function () {
+           this.bulletCount++;
         },
 
     start () {
